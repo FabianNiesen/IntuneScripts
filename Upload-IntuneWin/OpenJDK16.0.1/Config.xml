@@ -29,18 +29,21 @@
 		<InstallExperience>System</InstallExperience>
 		<!-- Edit the PackageName element to match the name of the .PS1 script that the IntuneWinAppUtil should reference -->
 		<!-- For MSI or EXE AppType - this must be the name of the MSI or executable file in the ..\Source folder - without the .exe in the name -->
-		<PackageName>Adobe Reader DC 2100120150 DE</PackageName>
+		<PackageName>OpenJDK16.0.1</PackageName>
 		<!-- Edit the displayName element that will be shown for the imported package in the Intune console -->
-		<displayName>Adobe Reader DC 2100120150 DE</displayName>
+		<displayName>OpenJDK 16.0.1</displayName>
 		<!-- Edit the Description element that will be shown for the imported package in the Intune console -->
-		<Description>Adobe Reader DC 2100120150 DE</Description>
+		<Description>This page provides production-ready open-source builds of the Java Development Kit, version 16, an implementation of the Java SE 16 Platform under the GNU General Public License, version 2, with the Classpath Exception.
+Commercial builds of JDK 16.0.1 from Oracle, under a non-open-source license, can be found at the Oracle Technology Network.
+
+Packaged by InfrastructureHeroes.org</Description>
 		<!-- Edit the Publisher name if required -->
-		<Publisher>Adobe</Publisher>
+		<Publisher>Oracle</Publisher>
 		<!-- Edit the Category element that will be shown for the imported package in the Intune console -->
 		<Category>Business</Category>
 		<!-- Edit the LogoFile element to provide a logo shown in Company Portal -->
-		<LogoFile>MSLogo.png</LogoFile>
+		<LogoFile>IFHLogo.png</LogoFile>
 		<!-- Edit the AADGroupName element used for the required/available/uninstall group creation -->
-		<AADGroupName>ID-WIN10-OBJECT-CONFIG-GroupName Here v1.0</AADGroupName>
+		<AADGroupName>AAD-RG-SW-OpenJDK-16.0.1</AADGroupName>
 	</IntuneWin_Settings>
 </CONFIG>

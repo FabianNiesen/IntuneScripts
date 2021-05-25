@@ -41,6 +41,6 @@
 		<!-- Edit the LogoFile element to provide a logo shown in Company Portal -->
 		<LogoFile>greenshot.png</LogoFile>
 		<!-- Edit the AADGroupName element used for the required/available/uninstall group creation -->
-		<AADGroupName>ID-WIN10-OBJECT-CONFIG-Greenshot 1.2.10.6</AADGroupName>
+		<AADGroupName>AAD-RG-SW-Greenshot 1.2.10.6</AADGroupName>
 	</IntuneWin_Settings>
 </CONFIG>

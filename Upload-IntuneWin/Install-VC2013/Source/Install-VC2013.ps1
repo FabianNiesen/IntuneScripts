@@ -783,35 +783,10 @@ Write-Log -Message "Running in 64-bit mode: $([System.Environment]::Is64BitProce
 
 If ($Install) {
     Write-Log -Message "Performing Install steps..."
-<#
-.SYNOPSIS
-Install ZIP-Version of GreenShot and create StartMenu entry
-	
-.DESCRIPTION
-Install ZIP-Version of GreenShot and create StartMenu entry. This can be used to avoid the open Webpage in the Installer. 
-The installer also open the Website if it is used with /Verysilent.
-This Skript was created for Unattened installation with MDT.
 
-.EXAMPLE 
-C:\PS> install-greenshot.ps1
-
-.NOTES
-Author     : Fabian Niesen (www.fabian-niesen.de)
-Filename   : install-greenshot
-Requires   : PowerShell Version 3.0
-Version    : 1.0
-History    : 1.0.0   FN  08/07/2019  initial version
-
-.LINK
-https://www.infrastrukturhelden.de
-#>
-New-Item -ItemType Directory -Path %programfiles%\Greenshot -Confirm:$false
-Expand-Archive -Force Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip %programfiles%\Greenshot
-#Remove-Item Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("%ProgramData%\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk")
-$Shortcut.TargetPath = "%programfiles%\Greenshot\Greenshot.exe"
-$Shortcut.Save() 
+    #Your code goes here
+    Start-Process -FilePath "vcredist_x86.exe" -ArgumentList "/install /quiet"  -Wait -WindowStyle Hidden -ErrorAction Stop
+    Start-Process -FilePath "vcredist_x64.exe" -ArgumentList "/install /quiet"  -Wait -WindowStyle Hidden -ErrorAction Stop
 
     #Handle Intune detection method
     If (! ($userInstall) ) {
@@ -858,8 +833,9 @@ $Shortcut.Save()
 ElseIf ( $UnInstall ) {
     Write-Log -Message "Performing Uninstall steps..."
 
-    Remove-Item -Path %programfiles%\Greenshot -Recurse -Confirm:$false
-    Remove-Item -Path "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk" -Confirm:$false
+    #Your code goes here
+    Start-Process -FilePath "vcredist_x86.exe" -ArgumentList "/uninstall /quiet"  -Wait -WindowStyle Hidden -ErrorAction Stop
+    Start-Process -FilePath "vcredist_x64.exe" -ArgumentList "/uninstall /quiet"  -Wait -WindowStyle Hidden -ErrorAction Stop
 
 
 

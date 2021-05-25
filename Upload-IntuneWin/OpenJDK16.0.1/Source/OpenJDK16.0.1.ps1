@@ -739,6 +739,80 @@ NAME: Install-Hotfix
 
 ####################################################
 
+Function ADD-PATH
+{
+[Cmdletbinding()]
+param
+(
+[parameter(Mandatory=$True,
+ValueFromPipeline=$True,
+Position=0)]
+[String[]]$AddedFolder
+)
+# https://devblogs.microsoft.com/scripting/use-powershell-to-modify-your-environmental-path/
+# Get the current search path from the environment keys in the registry.
+Write-Output "Folder to added to Path: $AddedFolder"
+$OldPath=(Get-ItemProperty -Path ‘Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment’ -Name PATH).Path
+
+# See if a new folder has been supplied.
+
+IF (!$AddedFolder)
+{ Return ‘No Folder Supplied. $ENV:PATH Unchanged’}
+
+# See if the new folder exists on the file system.
+
+IF (!(TEST-PATH $AddedFolder))
+{ Return ‘Folder Does not Exist, Cannot be added to $ENV:PATH’ }
+
+# See if the new Folder is already in the path.
+
+IF ($ENV:PATH | Select-String -SimpleMatch $AddedFolder)
+{ Return ‘Folder already within $ENV:PATH’ }
+
+# Set the New Path
+
+$NewPath=$OldPath+’;’+$AddedFolder
+
+Set-ItemProperty -Path ‘Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment’ -Name PATH –Value $newPath
+
+# Show our results back to the world
+
+Return $NewPath
+}
+
+####################################################
+
+Function REMOVE-PATH
+{
+[Cmdletbinding()]
+param
+(
+[parameter(Mandatory=$True,
+ValueFromPipeline=$True,
+Position=0)]
+[String[]]$RemovedFolder
+)
+# https://devblogs.microsoft.com/scripting/use-powershell-to-modify-your-environmental-path/
+# Get the Current Search Path from the environment keys in the registry
+Write-Output "Try to remove folder from Path: $RemovedFolder"
+$NewPath = (Get-ItemProperty -Path ‘Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment’ -Name PATH).Path
+Write-Output "Path: $NewPath"
+# Find the value to remove, replace it with $NULL. If it’s not found, nothing will change.
+
+$NewPath = $NewPath.replace($RemovedFolder,$NULL)
+
+# Update the Environment Path
+
+Set-ItemProperty -Path ‘Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment’ -Name PATH –Value $NewPath
+
+# Show what we just did
+
+Return $(Get-ItemProperty -Path ‘Registry::HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session Manager\Environment’ -Name PATH).Path
+
+}
+
+####################################################
+
 Start-Log -FilePath $logFile -DeleteExistingFile
 Write-Host
 Write-Host "Script log file path is [$logFile]" -ForegroundColor Cyan
@@ -783,35 +857,18 @@ Write-Log -Message "Running in 64-bit mode: $([System.Environment]::Is64BitProce
 
 If ($Install) {
     Write-Log -Message "Performing Install steps..."
-<#
-.SYNOPSIS
-Install ZIP-Version of GreenShot and create StartMenu entry
-	
-.DESCRIPTION
-Install ZIP-Version of GreenShot and create StartMenu entry. This can be used to avoid the open Webpage in the Installer. 
-The installer also open the Website if it is used with /Verysilent.
-This Skript was created for Unattened installation with MDT.
-
-.EXAMPLE 
-C:\PS> install-greenshot.ps1
-
-.NOTES
-Author     : Fabian Niesen (www.fabian-niesen.de)
-Filename   : install-greenshot
-Requires   : PowerShell Version 3.0
-Version    : 1.0
-History    : 1.0.0   FN  08/07/2019  initial version
-
-.LINK
-https://www.infrastrukturhelden.de
-#>
-New-Item -ItemType Directory -Path %programfiles%\Greenshot -Confirm:$false
-Expand-Archive -Force Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip %programfiles%\Greenshot
-#Remove-Item Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip
-$WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("%ProgramData%\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk")
-$Shortcut.TargetPath = "%programfiles%\Greenshot\Greenshot.exe"
-$Shortcut.Save() 
+    Push-Location $(Split-Path $Script:MyInvocation.MyCommand.Path)
+    $targetfolder = $Env:Programfiles + "\OpenJDK16"
+    $sourcezip = $(Get-ChildItem openjdk-16*_windows-x64_bin.zip | Sort-Object -Property Name -Descending)[0].Name
+    Write-Log "Target folder: $targetfolder"
+    Write-Log "SourceZip: $sourcezip"
+    New-Item -ItemType Directory -Path $targetfolder -Confirm:$false 
+    Expand-Archive -Force $sourcezip $targetfolder
+    $targetpath = $targetfolder + "\" + $(Get-ChildItem $targetfolder | Sort-Object -Property Name -Descending)[0].Name + "\bin"
+    Write-Log "Target Path: $targetpath"
+    ADD-PATH -AddedFolder $targetpath
+    [Environment]::SetEnvironmentVariable("JAVA_HOME", $($targetfolder + "\" + $(Get-ChildItem $targetfolder | Sort-Object -Property Name -Descending)[0].Name), [System.EnvironmentVariableTarget]::Machine)
+    # Set JAVA_HOME
 
     #Handle Intune detection method
     If (! ($userInstall) ) {
@@ -857,10 +914,15 @@ $Shortcut.Save()
 }
 ElseIf ( $UnInstall ) {
     Write-Log -Message "Performing Uninstall steps..."
-
-    Remove-Item -Path %programfiles%\Greenshot -Recurse -Confirm:$false
-    Remove-Item -Path "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk" -Confirm:$false
-
+    $targetfolder = $Env:Programfiles + "\OpenJDK16"
+    Write-Log "Target folder: $targetfolder"
+    $targetpath = $targetfolder + "\" + $(Get-ChildItem $targetfolder | Sort-Object -Property Name -Descending)[0].Name + "\bin"
+    Write-Log "Target Path: $targetpath"
+    [Environment]::SetEnvironmentVariable("JAVA_HOME", $null , [System.EnvironmentVariableTarget]::Machine)
+    Write-Log "Try to remove Path"
+    REMOVE-PATH -RemovedFolder $(";" + $targetpath)
+    Write-Log "Remove folder: $targetfolder"
+    Remove-Item -Path $targetfolder -Recurse -Confirm:$false 
 
 
     #Handle Intune detection method
