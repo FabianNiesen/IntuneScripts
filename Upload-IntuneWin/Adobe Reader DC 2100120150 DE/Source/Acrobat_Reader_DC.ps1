@@ -783,137 +783,23 @@ Write-Log -Message "Running in 64-bit mode: $([System.Environment]::Is64BitProce
 
 If ($Install) {
     Write-Log -Message "Performing Install steps..."
-
+    Push-Location $(Split-Path $Script:MyInvocation.MyCommand.Path)
+    $MSP = $(Get-ChildItem *.msp | Sort-Object -Property Name -Descending)[0].Name
+    Write-Verbose "MSP: $MSP"
+    $ARG = " /update " + $MSP + " /t AcroRead.mst /qn /norestart"
+    Write-Verbose "ARG: $ARG"
 # MSI CODE Reader DE  {AC76BA86-7AD7-1031-7B44-AC0F074E4100}
-# MSI CODE Reader MUI 
-IF (!(get-wmiobject Win32_Product | ? { $_.IdentifyingNumber -like "{AC76BA86-7AD7-1031-7B44-AC0F074E4100}"})) { Start-Process -NoNewWindow -FilePath "msiexec.exe" -ArgumentList " /i AcroRead.msi /T AcroRead.mst /q" -Wait } ELSE {Write-Output "Acrobar already installed"}
-Start-Process -NoNewWindow -FilePath "msiexec.exe" -ArgumentList " /u AcroRdrDCUpd2100120150.msp /T AcroRead.mst /q" -Wait 
+# MSI CODE Reader MUI {AC76BA86-7AD7-FFFF-7B44-AC0F074E4100}
+# AcroRdrDCUpd2100120155_MUI.msp
 
-    #Your code goes here
-<# Code Examples
-#region CMTrace
-    If (Test-Path -Path $PSScriptRoot\cmtrace.exe) { # cmtrace.exe exists in script folder
-        Write-Log -Message "Copy CMTrace for logging"
-        
-        Write-Log -Message "Create path: $env:ProgramFiles\Tools"
-        Try {
-            New-Item -Path "$env:ProgramFiles\Tools" -ItemType "Directory" -Force -ErrorAction Stop
-        }
-        Catch {
-            Write-Log -Message "Error occurred trying to create path: $($_.Exception.message)"
-            Write-Warning "$($env:computername.ToUpper()) : $($_.Exception.message)"
-            Exit
-        }
+Write-Verbose "Install Base Installer"
+IF (!(get-wmiobject Win32_Product | ? { $_.IdentifyingNumber -like "{AC76BA86-7AD7-1031-7B44-AC0F074E4100}"})) { Start-Process -NoNewWindow -FilePath "msiexec.exe" -ArgumentList " /i AcroRead.msi /t AcroRead.mst /qn /norestart" -Wait } ELSE {Write-Output "Acrobar already installed"}
+Write-Verbose "Install Update"
+Start-Process -NoNewWindow -FilePath "msiexec.exe" -ArgumentList $ARG -Wait 
 
-        Write-Log -Message "Copy item: $PSScriptRoot\cmtrace.exe"
-        Try {
-            Copy-Item -Path "$PSScriptRoot\cmtrace.exe" -Destination "$env:ProgramFiles\Tools" -Force -ErrorAction Stop
-        }
-        Catch {
-            Write-Log -Message "Error occurred trying to create path: $($_.Exception.message)"
-            Write-Warning "$($env:computername.ToUpper()) : $($_.Exception.message)"
-            Exit
-        }
 
-        # Create Resgistry Keys
-        Write-Log -Message "Creating CMTrace log-file shell extension registry entries..."
-        New-Item -Path 'HKLM:\Software\Classes\.lo_' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Classes\.log' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Classes\.log.File' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Classes\.Log.File\shell' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Classes\Log.File\shell\Open' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Classes\Log.File\shell\Open\Command' -type Directory -Force -ErrorAction SilentlyContinue
-        New-Item -Path 'HKLM:\Software\Microsoft\Trace32' -type Directory -Force -ErrorAction SilentlyContinue
 
-        # Create the properties to make CMtrace the default log viewer
-        New-ItemProperty -LiteralPath 'HKLM:\Software\Classes\.lo_' -Name '(default)' -Value "Log.File" -PropertyType String -Force -ea SilentlyContinue;
-        New-ItemProperty -LiteralPath 'HKLM:\Software\Classes\.log' -Name '(default)' -Value "Log.File" -PropertyType String -Force -ea SilentlyContinue;
-        New-ItemProperty -LiteralPath 'HKLM:\Software\Classes\Log.File\shell\open\command' -Name '(default)' -Value "`"$env:ProgramFiles\Tools\CMTrace.exe`" `"%1`"" -PropertyType String -Force -ea SilentlyContinue;
 
-        # Create an ActiveSetup that will remove the initial question in CMtrace if it should be the default reader
-        New-Item -Path "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\CMtrace" -type Directory -Force
-        new-itemproperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\CMtrace" -Name "Version" -Value 1 -PropertyType String -Force
-        new-itemproperty "HKLM:\SOFTWARE\Microsoft\Active Setup\Installed Components\CMtrace" -Name "StubPath" -Value "reg.exe add HKCU\Software\Microsoft\Trace32 /v ""Register File Types"" /d 0 /f" -PropertyType ExpandString -Force
-    }
-#endregion CMTrace
-
-#region IsVM
-    If (Is-VM){
-        Write-Log -Message "Machine is a VM"
-    }
-    Else {
-       Write-Host "Machine is a physical device"
-       
-       #Enable Hibernate
-       Write-Log -Message "Enabling Hibernation"
-       $command = "PowerCfg.exe /HIBERNATE"
-       #$workDir = $PSScriptRoot
-       $workDir = "$env:SystemRoot\System32"
-       Try {
-            Start-Process -FilePath $command -WorkingDirectory $workDir -Wait -WindowStyle Hidden -ErrorAction Stop
-        }
-        Catch {
-            Write-Log -Message "Error occurred trying to enable hibernate: $($_.Exception.message)"
-            Write-Warning "$($env:computername.ToUpper()) : $($_.Exception.message)"
-            Exit
-        }
-    }
-#endregion IsVM
-
-#region InstallHotfix
-    #Assumes the hotfix .msu file is in the same folder as the script
-    $installHotfix = Install-Hotfix -HotFixID "windows10.0-kb4549951-x64_5411f88ea08bfc0ac98f388f5a3bdc8bcfea3261.msu"
-
-    If ($installHotfix -eq "Installed") {
-        Write-Log -Message "Hotfix successfully installed"
-    }
-    ElseIf ($installHotfix -eq "Failed") {
-        Write-Log -Message "Hotfix not installed, exiting..."
-        Exit
-    }
-#endregion InstallHotfix
-
-#region RegistryChanges
-    #Handle registry changes
-    $registryPath = "HKLM:\Software\Microsoft\MCS\Scripts"
-    $regProperties = @{
-        Name = "Version"
-        Value = "1"
-        PropertyType = "DWORD"
-        ErrorAction = "Stop"
-    }
-
-    Try {
-        $Null = New-ItemProperty -Path $registryPath @regProperties -Force
-    }
-    Catch [System.Management.Automation.ItemNotFoundException] {
-        Write-Log -Message "Error: $registryPath path not found, attempting to create..."
-        $Null = New-Item -Path $registryPath -Force
-        $Null = New-ItemProperty -Path $registryPath @regProperties -Force
-    }
-    Catch {
-        Write-Log -Message "Error changing registry: $($_.Exception.message)"
-        Write-Warning "Error: $($_.Exception.message)"        
-        Exit
-    }
-    Finally {
-        Write-Log -Message "Finished changing registry"
-    }
-#endregion RegistryChanges
-
-#region RemoveLTIBootStrap
-    #Remove MDT LTIBootStrap.vbs files from root of all drives:
-    #Get-PSDrive -PSProvider FileSystem | ForEach-Object {Get-Childitem -Path $_.Root -Filter "LTIBootstrap.vbs"} -ErrorAction SilentlyContinue | Remove-Item -Force
-    Write-Log -Message "Removing MDT LTIBootStrap.vbs files..."
-    #Get-PSDrive -PSProvider FileSystem | ForEach-Object Root | Get-ChildItem -Recurse -File -Force -ErrorAction Ignore | Where-Object Name -eq 'LTIBootstrap.vbs' | Tee-Object -Variable deleted | Remove-Item -Force
-    Get-PSDrive -PSProvider FileSystem | ForEach-Object Root | Get-ChildItem -File -Force -ErrorAction Ignore | Where-Object Name -eq 'LTIBootstrap.vbs' | Tee-Object -Variable deleted | Remove-Item -Force
-    #$deleted | GM
-    #$removed = $deleted.pspath -replace "Microsoft.PowerShell.Core\FileSystem::", ""
-    #$removed = $deleted.pspath.replace("Microsoft.PowerShell.Core\FileSystem::", "")
-    Write-Log -Message: "Removed files: $($deleted.pspath.replace("Microsoft.PowerShell.Core\FileSystem::", """))"
-#endregion RemoveLTIBootStrap
-
-#>
     #Handle Intune detection method
     If (! ($userInstall) ) {
             Write-Log -Message "Creating detection rule for System install"

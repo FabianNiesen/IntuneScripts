@@ -29,18 +29,18 @@
 		<InstallExperience>System</InstallExperience>
 		<!-- Edit the PackageName element to match the name of the .PS1 script that the IntuneWinAppUtil should reference -->
 		<!-- For MSI or EXE AppType - this must be the name of the MSI or executable file in the ..\Source folder - without the .exe in the name -->
-		<PackageName>SubfolderNameHere</PackageName>
+		<PackageName>Acrobat_Reader_DC_MUI_2100120150 </PackageName>
 		<!-- Edit the displayName element that will be shown for the imported package in the Intune console -->
-		<displayName>MCS Intune name here</displayName>
+		<displayName>Acrobat Reader DC MUI 2100120150 </displayName>
 		<!-- Edit the Description element that will be shown for the imported package in the Intune console -->
-		<Description>Description goes here</Description>
+		<Description>Adobe Acrobat Reader MUI 2100120150 </Description>
 		<!-- Edit the Publisher name if required -->
-		<Publisher>Microsoft</Publisher>
+		<Publisher>Adobe</Publisher>
 		<!-- Edit the Category element that will be shown for the imported package in the Intune console -->
 		<Category>Business</Category>
 		<!-- Edit the LogoFile element to provide a logo shown in Company Portal -->
 		<LogoFile>IFHLogo.png</LogoFile>
 		<!-- Edit the AADGroupName element used for the required/available/uninstall group creation -->
-		<AADGroupName>ID-WIN10-OBJECT-CONFIG-GroupName Here v1.0</AADGroupName>
+		<AADGroupName>AAD-RG-SW-Acrobat_Reader_DC_MUI</AADGroupName>
 	</IntuneWin_Settings>
 </CONFIG>
