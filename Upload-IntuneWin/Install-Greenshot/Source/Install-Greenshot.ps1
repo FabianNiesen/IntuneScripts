@@ -805,12 +805,12 @@ History    : 1.0.0   FN  08/07/2019  initial version
 .LINK
 https://www.infrastrukturhelden.de
 #>
-New-Item -ItemType Directory -Path %programfiles%\Greenshot -Confirm:$false
-Expand-Archive -Force Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip %programfiles%\Greenshot
+New-Item -ItemType Directory -Path $Env:Programfiles\Greenshot -Confirm:$false
+Expand-Archive -Force Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip $Env:Programfiles\Greenshot
 #Remove-Item Greenshot-NO-INSTALLER-1.2.10.6-RELEASE.zip
 $WshShell = New-Object -comObject WScript.Shell
-$Shortcut = $WshShell.CreateShortcut("%ProgramData%\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk")
-$Shortcut.TargetPath = "%programfiles%\Greenshot\Greenshot.exe"
+$Shortcut = $WshShell.CreateShortcut("$Env:ProgramData\Microsoft\Windows\Start Menu\Programs\Greenshot.lnk")
+$Shortcut.TargetPath = "$Env:Programfiles\Greenshot\Greenshot.exe"
 $Shortcut.Save() 
 
     #Handle Intune detection method
