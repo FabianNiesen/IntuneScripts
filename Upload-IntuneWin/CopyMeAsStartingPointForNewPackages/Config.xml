@@ -41,6 +41,8 @@
 		<!-- Edit the LogoFile element to provide a logo shown in Company Portal -->
 		<LogoFile>IFHLogo.png</LogoFile>
 		<!-- Edit the AADGroupName element used for the required/available/uninstall group creation -->
-		<AADGroupName>ID-WIN10-OBJECT-CONFIG-GroupName Here v1.0</AADGroupName>
+		<AADGroupName>AAD-RG-SW--GroupName</AADGroupName>
+		<!-- Provide Version information if available -->
+		<Version></Version>
 	</IntuneWin_Settings>
 </CONFIG>
