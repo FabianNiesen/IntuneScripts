@@ -286,29 +286,39 @@ Write-Log -Message "Import-Module ConfigurationManager"
 Import-Module "C:\Program Files (x86)\Microsoft Configuration Manager\AdminConsole\bin\ConfigurationManager.psd1" -Verbose:$false
 New-PSDrive -Name "SCCM" -PSProvider "AdminUI.PS.Provider\CMSite" -Root $SCCMServer -Description "Primary site"
 Set-Location SCCM:
+$site = $(Get-CMSite).SiteCode
+Write-Log -Message "CM SiteCode: $site"
 IF ( $(Get-CMDistributionPointGroup -Name $DistributionPointGroupName ).count -ne 1 ) { Write-Log -Message "Error - DistributionPointGroupName not valid: DistributionPointGroupName" ; Exit }
 
 
   $PackageName = $script:PackageName
-  $InstallCommand = "Powershell.exe -ExecutionPolicy ByPass -File " + $PackageName + ".ps1 -install"
-  $UninstallCommand = "Powershell.exe -ExecutionPolicy ByPass -File " + $PackageName + ".ps1 -uninstall"
+  $InstallCommand = 'Powershell.exe -ExecutionPolicy ByPass -File "' + $PackageName + '.ps1" -install'
+  $UninstallCommand = 'Powershell.exe -ExecutionPolicy ByPass -File "' + $PackageName + '.ps1" -uninstall'
   $RebootBehavior = "NoAction"
   Write-Log -Message "Setting detection clauses"
   $clause1 = New-CMDetectionClauseRegistryKeyValue -Hive LocalMachine -KeyName "SOFTWARE\Microsoft\IntuneApps" -PropertyType String -ValueName "$PackageName" -Value -ExpectedValue "Installed" -ExpressionOperator Contains
   $clause2 = New-CMDetectionClauseRegistryKeyValue -Hive CurrentUser -KeyName "SOFTWARE\Microsoft\IntuneApps" -PropertyType String -ValueName "$PackageName" -Value -ExpectedValue "Installed" -ExpressionOperator Contains
   $clause3 = New-CMDetectionClauseFile -FileName $($PackageName + ".tag") -Path "%PROGRAMDATA%\Microsoft\IntuneApps\$PackageName" -Existence
   $clause4 = New-CMDetectionClauseFile -FileName $($PackageName + ".tag") -Path "%LOCALAPPDATA%\Microsoft\IntuneApps\$PackageName" -Existence
-  $clause1,$clause2,$clause3,$clause4 | FT -AutoSize
+  #$clause1,$clause2,$clause3,$clause4 | FT -AutoSize
   IF ($SourceLocation.EndsWith("\") -like "False") { $SourceLocation =$SourceLocation+"\" }
   $ContentLocation = $SourceLocation + $packagePath + "\source\"
   Write-Verbose "PackageName: $PackageName"
   Write-Log -Message  "InstallCommand: $InstallCommand"
   Write-Log -Message  "UninstallCommand: $UninstallCommand"
-  Write-Log -Message "New-CMApplication"
+  Write-Log -Message "New-CMApplication $PackageName"
   IF ( ! ( Get-CMApplication -Name $PackageName  )) #Detect different version is missing#
     {
-    IF ( IsNull($script:Version) ) { New-CMApplication -Name $PackageName -Description $script:Description -AutoInstall $true -Publisher $script:Publisher -ReleaseDate $(Get-Date) }
-    ELSE { New-CMApplication -Name $PackageName -Description $script:Description -AutoInstall $true -Publisher $script:Publisher -ReleaseDate $(Get-Date) -SoftwareVersion $script:Version }
+    
+    IF ( IsNull($script:Version) ) { New-CMApplication -Name $PackageName -Description $script:Description -AutoInstall $true -Publisher $script:Publisher -ReleaseDate $(Get-Date)  | FT -Property LocalizedDisplayName,DateLastModified -AutoSize  }# | ft -AutoSize
+    ELSE { New-CMApplication -Name $PackageName -Description $script:Description -AutoInstall $true -Publisher $script:Publisher -ReleaseDate $(Get-Date) -SoftwareVersion $script:Version  | FT -Property LocalizedDisplayName,DateLastModified -AutoSize  }#  | ft -AutoSize
+    $app = Get-CMApplication -Name $PackageName
+    IF ( ! (Test-Path $($site + ":\Application\Intune-Apps")) ) 
+    { 
+      Write-Log -Message "Ceate CM Application folder for Intune-Apps"
+      New-Item -Path $($site + ":\Application\Intune-Apps") 
+    }
+    Move-CMObject -FolderPath $($site + ":\Application\Intune-Apps") -InputObject $app
     } 
     Else { Write-Log -Message "CMApplication $PackageName already exists - Skip Creation" -LogLevel 2 } 
   $DeploymentTypeName = "Install " + $PackageName
@@ -316,20 +326,20 @@ IF ( $(Get-CMDistributionPointGroup -Name $DistributionPointGroupName ).count -n
   IF ( ! ( Get-CMDeploymentType -ApplicationName $PackageName | ? { $_.LocalizedDisplayName -like $DeploymentTypeName }  )) {
     If ( $script:AppType -like "PS1")
     {
-      Write-Log -Message "Add-CMScriptDeploymentType"
-      Add-CMScriptDeploymentType -ApplicationName $PackageName -DeploymentTypeName $DeploymentTypeName -InstallCommand $InstallCommand -LogonRequirementType WhetherOrNotUserLoggedOn -MaximumRuntimeMins 15 -UninstallCommand $UninstallCommand -RebootBehavior $RebootBehavior -AddDetectionClause $clause1,$clause2,$clause3,$clause4  -DetectionClauseConnector @{"LogicalName"=$clause1.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause2.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause3.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause4.Setting.LogicalName;"Connector"="OR"} -ContentLocation $ContentLocation -InstallationBehaviorType InstallForSystem -SlowNetworkDeploymentMode Download -UserInteractionMode Normal -ContentFallback -EstimatedRuntimeMins 15 
+      Write-Log -Message "Add-CMScriptDeploymentType $DeploymentTypeName"
+      Add-CMScriptDeploymentType -ApplicationName $PackageName -DeploymentTypeName $DeploymentTypeName -InstallCommand $InstallCommand -LogonRequirementType WhetherOrNotUserLoggedOn -MaximumRuntimeMins 15 -UninstallCommand $UninstallCommand -RebootBehavior $RebootBehavior -AddDetectionClause $clause1,$clause2,$clause3,$clause4  -DetectionClauseConnector @{"LogicalName"=$clause1.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause2.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause3.Setting.LogicalName;"Connector"="OR"},@{"LogicalName"=$clause4.Setting.LogicalName;"Connector"="OR"} -ContentLocation $ContentLocation -InstallationBehaviorType InstallForSystem -SlowNetworkDeploymentMode Download -UserInteractionMode Normal -ContentFallback -EstimatedRuntimeMins 15 | FT -Property LocalizedDisplayName,Technology -AutoSize
       } ELSE {
       Write-Log -Message "CMScriptDeploymentType $PackageName already exists - Skip Creation" -LogLevel 2 }
     }
   ### Add other Deployment Types here ###    
   
-  Write-Log -Message "New-CMApplicationDeployment"
+  Write-Log -Message "New-CMApplicationDeployment for $PackageName"
   IF ( ! ( Get-CMApplicationDeployment -Name $PackageName -CollectionName $CollectionName )) {
-    New-CMApplicationDeployment -CollectionName "$CollectionName" -Name "$PackageName" -DeployAction Install -DeployPurpose Available -UserNotification DisplayAll -AvailableDateTime (get-date) -TimeBaseOn LocalTime -DistributeContent -DistributionPointGroupName $DistributionPointGroupName
+    New-CMApplicationDeployment -CollectionName "$CollectionName" -Name "$PackageName" -DeployAction Install -DeployPurpose Available -UserNotification DisplayAll -AvailableDateTime (get-date) -TimeBaseOn LocalTime -DistributeContent -DistributionPointGroupName $DistributionPointGroupName |  FT -Property ApplicationName,Enabled,StartTime
     } ELSE {Write-Log -Message "CMApplicationDeployment $PackageName already exists - Skip Creation" -LogLevel 2}
   
   #>
 
 
 Set-Location $runpath
-Remove-PSDrive -Name "SCCM" -PSProvider "AdminUI.PS.Provider\CMSite" 
+#Remove-PSDrive -Name $site -PSProvider "AdminUI.PS.Provider\CMSite" 
