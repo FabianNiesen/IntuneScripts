@@ -1226,6 +1226,7 @@ NAME: Upload-Win32LOB
 
         If ( $AppType -ne "Edge" ) {
             Write-Host "Testing if SourceFile '$SourceFile' Path is valid..." -ForegroundColor Yellow
+            $SourceFile = $PSScriptRoot +"\"+$SourceFile
             Test-SourceFile "$SourceFile"
             #$Win32Path = "$SourceFile"
 
@@ -2574,7 +2575,7 @@ function New-IntuneWin32AppIcon {
     )
     # Handle error action preference for non-cmdlet code
     $ErrorActionPreference = "Stop"
-
+    $FilePath = $PSScriptRoot+"\"+$FilePath
     try {
         # Encode image file as Base64 string
         $EncodedBase64String = [System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("$($FilePath)"))
