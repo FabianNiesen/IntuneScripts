@@ -1,1 +1,0 @@
-.\Invoke-BulkUpload.ps1 -userName username@upnaddressgoeshere.com -PackageJSON "IntunePackages.JSON"
